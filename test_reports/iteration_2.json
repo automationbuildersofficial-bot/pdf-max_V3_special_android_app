@@ -1,0 +1,25 @@
+{
+  "summary": "Frontend-only re-test of the flex-shrink layout fix (PageView/Reader) plus correct-page drawing, eraser, book mode and toolbar reset. Flow: guest login -> skip tutorial -> upload /tmp/sample.pdf (3 pages). LAYOUT BUG IS FIXED: in continuous scroll every [data-testid=page-canvas-wrap] rect height (1178.797px) matches its inline style height (1178.8px), no collapse to ~280px, 32px visible gaps, no overlap, reader-scroll scrollHeight=3680 >= sum of page heights 3536.4. Drawing hits the correct page: pen stroke on lower half of page 2 changed ONLY page 2's annotation canvas pixels (0->716 non-transparent px), stroke on page 3 changed ONLY page 3; eraser over page-3 stroke removed it (716->0). Book mode (reader-book): both spread rows keep full height 1178.8px, all 3 wrappers full height, 40px gap between rows, no overlap. No console errors, no pageerrors, no error elements throughout. Only failure: toolbar double-click reset does not persist (localStorage pdf_toolbar_pos remains).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Toolbar.js (drag handle reset)", "issue": "Double-clicking the drag handle visually resets the toolbar (y back to default 1013) but localStorage 'pdf_toolbar_pos' still holds the dragged value {x:581,y:373}; after page reload the toolbar is restored to the dragged position, so the reset is not persisted. RCA: onDragEnd writes localStorage inside the setPos state-updater callback. The dblclick's 2nd pointerup queues that updater; React runs it AFTER the onDoubleClick handler's localStorage.removeItem + setPos(null), re-writing the stale position. Fix: persist from a useEffect on pos (write when pos truthy, removeItem when null) or capture pos synchronously in a ref inside onDragMove and write it in onDragEnd without a state updater.", "selector": "[data-testid=\"toolbar-drag-handle\"]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": ["Fix toolbar reset persistence: move localStorage write for pdf_toolbar_pos out of the setPos updater (use useEffect on pos or a ref) so double-click reset also clears the stored position."],
+  "critical_code_review_comments": [
+    "Toolbar.js onDragEnd performs a side effect (localStorage.setItem) inside a setState updater - impure and causes the stale-write race with the dblclick reset.",
+    "PageView.js paintBase try/catch swallows errors with an empty block (line 61); a render failure would leave a blank page with no user feedback - log or surface an error state."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (skipped per request)", "frontend": "~93% (13/14 checks; only toolbar reset persistence failed)"},
+  "seed_data_creation": "Regenerated /tmp/sample.pdf (3 x A4 pages with title text + rectangle) using pdf-lib.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Guest login via [data-testid=guest-login-btn]; no server auth needed (client-side app).",
+  "context_for_next_testing_agent": "The iteration_1 flex-shrink/height-collapse bug is confirmed FIXED in both continuous-scroll and book modes, and pointer events now land on the correct page (verified via per-canvas alpha pixel counts). Remaining known issue is only the toolbar dblclick reset persistence in Toolbar.js. Useful technique: count non-zero alpha bytes of each [data-testid=annotation-canvas] before/after a mouse drag to prove which page received the stroke.",
+  "rca_of_the_issue": "Layout: 'shrink-0' on the PageView wrapper and book spread rows resolves the flex-shrink collapse; verified rect height == inline height for all pages in both modes. Toolbar reset: localStorage.setItem inside the setPos updater in onDragEnd is executed by React after the onDoubleClick handler removed the key, so the stale position is written back and survives reload."
+}

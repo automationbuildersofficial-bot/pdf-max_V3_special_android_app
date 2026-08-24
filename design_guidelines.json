@@ -1,0 +1,166 @@
+{
+  "theme_strategy": {
+    "archetype": "ARCHETYPE 4: SWISS & HIGH-CONTRAST (Authority, Clarity, Truth)",
+    "description": "A highly functional, document-first SaaS application. The design must be completely unobtrusive to allow maximum focus on the PDF content. We will use a clean monochrome structural base with high-contrast, vibrant accents strictly reserved for active tools (pen, highlighter, select) and call-to-actions. We are implementing both a Light Mode (default) and Night Mode, with seamless toggling.",
+    "forbidden": [
+      "Teal green/blue (#1B93A4) for dashboards",
+      "Space Grotesk font",
+      "Inter font for headings",
+      "Fully transparent backgrounds on headers or floating toolbars",
+      "Generic center-aligned app layouts"
+    ]
+  },
+  "typography": {
+    "fonts": {
+      "headings": {
+        "family": "Manrope",
+        "description": "Clean, rounded humanist sans for friendly yet professional authority.",
+        "usage_rules": "No 'Inter'. Use tracking-tight on headers > 32px. Use font-medium to font-bold. Never use 7xl+ for generic headings in this app."
+      },
+      "body": {
+        "family": "IBM Plex Sans",
+        "description": "Sterile, highly legible monospace-inspired sans-serif body to enhance data density and tool settings readability.",
+        "usage_rules": "Use for all UI text, tooltips, settings, sidebars, and annotations. leading-relaxed for long text."
+      }
+    },
+    "hierarchy": {
+      "h1": "text-3xl sm:text-4xl (App-level headings / Login Page)",
+      "h2": "text-2xl sm:text-3xl (Panel headers)",
+      "h3": "text-xl sm:text-2xl (Sub-sections, Settings)",
+      "h4": "text-sm sm:text-base font-semibold uppercase tracking-widest (Tool sections)",
+      "body": "text-sm (Standard UI)",
+      "caption": "text-xs text-muted-foreground (Tooltips, labels)"
+    }
+  },
+  "colors": {
+    "light_mode": {
+      "background": "#F9FAFB",
+      "canvas_background": "#E5E7EB",
+      "surface": "#FFFFFF",
+      "foreground": "#111827",
+      "muted": "#F3F4F6",
+      "muted_foreground": "#6B7280",
+      "border": "#E5E7EB",
+      "primary": "#3B82F6",
+      "primary_foreground": "#FFFFFF",
+      "ring": "#93C5FD"
+    },
+    "dark_mode": {
+      "background": "#111827",
+      "canvas_background": "#030712",
+      "surface": "#1F2937",
+      "foreground": "#F9FAFB",
+      "muted": "#374151",
+      "muted_foreground": "#9CA3AF",
+      "border": "#374151",
+      "primary": "#3B82F6",
+      "primary_foreground": "#FFFFFF",
+      "ring": "#2563EB"
+    },
+    "annotation_palette": [
+      "#EF4444", "#F97316", "#F59E0B", "#EAB308", "#84CC16", 
+      "#22C55E", "#10B981", "#14B8A6", "#06B6D4", "#0EA5E9", 
+      "#3B82F6", "#6366F1", "#8B5CF6", "#A855F7", "#D946EF", 
+      "#EC4899", "#F43F5E", "#000000", "#525252", "#FFFFFF"
+    ],
+    "rules": [
+      "Never use pure #000000 or #808080. Always tint neutrals.",
+      "The canvas background (behind the PDF) must contrast with the PDF page (which is usually white). So canvas should be a noticeable grey.",
+      "Ensure 4.5:1 APCA contrast on all text."
+    ]
+  },
+  "visual_enhancers": {
+    "surfaces": [
+      {
+        "type": "Glassmorphism (The 'Crystal' Variant)",
+        "usage": "Floating annotation toolbars over the PDF canvas and top sticky navigation.",
+        "implementation": "bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.12)]"
+      },
+      {
+        "type": "Neumorphism (Tactile Variant)",
+        "usage": "Sidebar panels and page thumbnails.",
+        "implementation": "Flat surface background with 1px border. Thumbnails should have drop-shadow-md to mimic real paper."
+      }
+    ],
+    "borders_and_radius": {
+      "app_radius": "rounded-xl",
+      "button_radius": "rounded-lg",
+      "thumbnail_radius": "rounded-sm (resembling paper)"
+    }
+  },
+  "components": {
+    "library": "shadcn/ui",
+    "specific_rules": {
+      "buttons": "Pill-shaped or rounded-lg. Must have explicit hover states (e.g., hover:bg-primary/90).",
+      "dropdowns": "Use Shadcn DropdownMenu for 'Export', 'Share', 'Add Page' actions. DO NOT use native HTML <select>. NO transparent backgrounds.",
+      "dialogs": "Use Shadcn Dialog for Onboarding Tutorial, Google Drive Permission Prompts, and Split/Merge PDF flows.",
+      "sliders": "Use Shadcn Slider for Highlighter/Pen intensity.",
+      "toasts": "Use 'sonner' (located in /app/src/components/ui/sonner.js) for save confirmations, error states, and connection alerts.",
+      "tooltips": "Every icon-only button in the annotation floating bar MUST have a Shadcn tooltip to explain its function.",
+      "sidebar": "Resizable (if possible) or fixed 250px-300px. 'PowerPoint slide-panel' style."
+    }
+  },
+  "grids_and_layouts": {
+    "app_shell": {
+      "strategy": "Full viewport height, strictly sectioned to prevent body scroll.",
+      "classes": "h-screen w-full flex flex-col overflow-hidden bg-background text-foreground"
+    },
+    "header": {
+      "classes": "h-14 w-full flex items-center justify-between px-4 sm:px-6 bg-surface border-b border-border z-40 shrink-0"
+    },
+    "workspace": {
+      "classes": "flex-1 w-full flex overflow-hidden relative"
+    },
+    "sidebar_thumbnails": {
+      "classes": "w-64 lg:w-72 border-r border-border bg-muted/20 overflow-y-auto flex flex-col gap-4 p-4 shrink-0"
+    },
+    "main_canvas": {
+      "classes": "flex-1 h-full bg-canvas_background overflow-auto relative flex justify-center items-start py-8 px-4"
+    },
+    "floating_toolbar": {
+      "classes": "absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 p-2 rounded-2xl bg-surface/90 backdrop-blur-xl border border-border shadow-2xl"
+    }
+  },
+  "motion": {
+    "rules": [
+      "Add micro-interactions to all toolbar buttons: active states scale down slightly (active:scale-95).",
+      "Hover states for tools must have a distinct background shift without generic 'transition-all'. Use 'transition-colors duration-200'.",
+      "Sidebar pages being reordered should have a smooth transform animation via drag-and-drop library defaults.",
+      "Include a staggered fade-in animation for the first-time user tutorial overlay."
+    ]
+  },
+  "accessibility": {
+    "rules": [
+      "All interactive elements MUST have a `data-testid` attribute (e.g., `data-testid='pen-tool-btn'`).",
+      "All icons must include aria-hidden='true' and be accompanied by span.sr-only descriptive text if no tooltip is present.",
+      "Ensure color palette for annotations has sufficient contrast against the PDF document.",
+      "Google login button must be clearly labeled and focusable."
+    ]
+  },
+  "media_and_icons": {
+    "icons": {
+      "library": "lucide-react",
+      "usage": "Use consistently sized icons (w-5 h-5 for main tools, w-4 h-4 for UI actions). Examples: PenTool, Highlighter, Eraser, Undo, Redo, LayoutGrid (sidebar), ImagePlus (insert), FilePlus (add blank page), Scissors (split), Link, MessageSquare (comment), Mic (audio)."
+    },
+    "images": {
+      "google_login_bg": {
+        "url": "https://images.unsplash.com/photo-1622547748225-3fc4abd2cca0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzZ8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMG1pbmltYWwlMjBnZW9tZXRyaWMlMjBsaWdodHxlbnwwfHx8fDE3ODc1MzA5NDR8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Abstract blue and white round geometric illustration to use as an aesthetic side-panel or background graphic on the Google Login screen."
+      }
+    }
+  },
+  "universal_guidelines": {
+    "instructions_to_main_agent": [
+      "NO AI SLOP: Do not use generic gradients or center-aligned generic text layouts.",
+      "Create depth through layered design elements with z-index hierarchy.",
+      "Use optical alignment. Add padding internally to containers with borders to prevent text collision.",
+      "DO NOT apply universal transitions (transition: all). Target transitions specifically (transition: transform 0.2s ease, background-color 0.2s ease).",
+      "DO NOT use raw HTML elements for complex UI components. Use Shadcn components for Select, Dialog, Slider, etc.",
+      "Never use AI assistant Emoji characters (🤖🧠💭💡) for icons. Use Lucide icons.",
+      "Maintain a professional, unobtrusive aesthetic so the PDF itself remains the star of the layout.",
+      "First-time tutorial should be a modern modal or series of spotlight popovers using Shadcn UI components.",
+      "Remember we are using .js extensions (not .tsx) so ensure all components are written in modern JavaScript React.",
+      "DO NOT add .App { text-align: center; } to index.css or App.css."
+    ]
+  }
+}

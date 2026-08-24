@@ -1,0 +1,52 @@
+{
+  "summary": "Full backend + frontend test of PDF Studio. Backend: 17/17 pytest cases pass (root, auth/me gating with missing/malformed/invalid/valid-unknown-user tokens, /auth/google expected 500 'not configured', documents CRUD with a seeded Mongo user + real JWT, _id exclusion verified). Frontend (Playwright, public URL, guest login): tutorial (next/back/skip/help reopen), PDF upload & render, sidebar collapse/expand, all 3 reading modes, pen/highlighter/rect drawing (verified via canvas pixel diff), undo/redo, 20-colour palette + size/flow sliders + Straight toggle, text comment, website link, eraser, insert blank/ruled page, rotate active page, delete page, drag-reorder, movable toolbar, tabs (open 2nd PDF / switch / close), merge, split dialog, export full + extract selected (both produced real downloads), recents (IndexedDB) + reopen from recents with rotation preserved, night mode. ZERO console/page errors across all runs. ONE CRITICAL layout bug found: pages are vertically squashed/overlapping in continuous-scroll and book modes.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "PageView / Reader (continuous scroll + book modes)",
+        "issue": "CRITICAL: Page wrapper divs are flex items inside 'flex flex-col' reader containers and have flex-shrink:1, so their inline height (e.g. 1178.8px) collapses to ~280px while the canvases keep their real 833x1179 size. Measured: wrapStyleH=1178.8px but wrapRectH=280px for every page; reader scrollHeight=1843px instead of ~3600px. Result: each page's canvas overflows and covers the following pages, only the top ~1/4 of a page is reachable by scrolling, the 'Page N' labels float in the middle of the previous page, and pointer events on the visually-overlapping area go to the WRONG page's annotation canvas (my pen stroke aimed at page 1's lower half was committed to page 2, and the eraser then appeared to do nothing). Eraser/pen work correctly in Single-page mode, confirming the root cause is layout-only. Fix: add shrink-0 (flex-shrink:0) to the page wrapper div in PageView.js line 190 (and/or to the book-mode spread rows in Reader.js).",
+        "selector": "[data-testid=\"page-canvas-wrap\"] inside [data-testid=\"reader-scroll\"] / [data-testid=\"reader-book\"]",
+        "priority": "CRITICAL"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Reader (continuous scroll / book)",
+        "issues": [
+          "Pages visually overlap with no gap because of the flex-shrink bug above; the gap-8 spacing is invisible.",
+          "The 'Page N' caption (absolute -top-6 left-0) renders on top of the previous page's content in scroll mode; consider placing it inside/below the page or in a gutter.",
+          "Minor: Toolbar drag position persists in localStorage (pdf_toolbar_pos) with no reset control, so a user who drags it to an awkward spot cannot restore the default centre position."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Add shrink-0 to the page container in /app/frontend/src/components/editor/PageView.js (line ~190) so pages keep their real height in continuous-scroll and book modes; verify each page's bounding rect height equals its inline height and that drawing on the lower half of a page commits to that page.",
+    "After the fix, re-verify pen/highlighter/shape/eraser on page 2 and 3 in continuous-scroll mode (currently only provable in Single-page mode).",
+    "Optional: reposition the 'Page N' label so it does not overlay the previous page."
+  ],
+  "critical_code_review_comments": [
+    "PageView.js: page wrapper relies on inline width/height but is a flex child -> must be shrink-0; this single missing class breaks the default reading mode.",
+    "PageView.js: catch blocks around paintBase/renderComposite swallow errors silently ('catch (e) {}') - a render failure would show a blank page with no diagnostics or error UI.",
+    "Sidebar.js Thumb: the 'cancelled' flag is set in the cleanup but never checked, so stale async renders can still paint (dead code / potential race).",
+    "Workspace.js is 608 lines and mixes reducer, file IO, export, split/merge and dialogs - consider splitting into hooks (useDocs, useFileIO) per the <700-line guidance.",
+    "Reader.js IntersectionObserver only observes elements present at effect time; combined with the shrink bug the active-page tracking is unreliable."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (17/17)", "frontend": "~95% of flows pass; 1 critical layout defect"},
+  "seed_data_creation": "Backend: temporary TEST_ user + TEST_ documents inserted directly into MongoDB by the pytest fixture and deleted in teardown. Frontend: /tmp/sample.pdf (3 pages) and /tmp/sample2.pdf (2 pages) generated with pdf-lib.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "No credentials needed - 'Continue as guest' (data-testid=guest-login-btn). Google OAuth intentionally unconfigured; /api/auth/google returns 500 as expected.",
+  "context_for_next_testing_agent": "Backend suite is complete at /app/backend/tests/backend_test.py (run: cd /app/backend && python -m pytest tests/backend_test.py -v). For frontend, hidden file inputs need state='attached' before set_input_files (start-file-input, open-file-input, merge-file-input). Verify drawing via canvas alpha-pixel counting on [data-testid=annotation-canvas]. Export/extract DO fire real downloads (sample-edited.pdf, sample-extract.pdf) - use a page.on('download') listener, toasts vanish after ~4s. Untested areas: Image page insert dialog (ImageInsertDialog crop/rotate/resolution), 'Save to device' / File System Access picker (cannot automate), split actual downloads, exact drag-reorder index semantics (order does change but indices were not asserted).",
+  "rca_of_the_issue": "Reader.js renders pages inside containers with 'flex flex-col items-center gap-8/gap-10'. The PageView wrapper (PageView.js:190) sets width/height inline but has the default flex-shrink:1, so when total page height exceeds the container height the browser shrinks every page box (1178.8px -> 280px measured). The absolutely-positioned canvases keep their intrinsic 833x1179 size and therefore overflow onto subsequent pages; later pages sit above earlier ones in DOM order, so pointer events in the overlapped region are captured by the wrong page's annotation canvas. Reproduction: guest login -> open a 3-page PDF -> default continuous scroll -> evaluate getBoundingClientRect on [data-testid=page-canvas-wrap] (height 280 vs style 1178.8px), or draw at 400px below a page's top and observe the stroke landing on the next page. Mitigation: add shrink-0 to the wrapper (and to the book-mode spread rows)."
+}
