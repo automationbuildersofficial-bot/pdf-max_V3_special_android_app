@@ -30,6 +30,11 @@ default, single page, book/two-page).
 - Google-only accounts + guest mode.
 
 ## Implemented (2026-06)
+- **Mobile pinch-to-zoom** — user couldn't zoom on mobile web; added two-finger pinch-to-zoom on the
+  PDF reader (non-passive touch handlers on the reader container adjust doc scale, clamped 0.4×–4×).
+  Overflow-menu zoom buttons (m-zoom-in/out) also confirmed working. Verified 7/7 (iteration_5.json).
+- **Landscape auto-refit** — pages recompute fit-to-width on orientation change / resize below 1024px
+  (capped 1.6×), so rotating a phone to landscape re-fits automatically.
 - **Mobile responsiveness (Android/phones)** — fixed "lacking & glitching on Android": TopBar now
   collapses to a compact page-nav + overflow menu (`mobile-menu-btn`) below 768px; PDF pages auto-fit
   the screen width on open (no forced horizontal scroll); pages sidebar becomes an opaque overlay

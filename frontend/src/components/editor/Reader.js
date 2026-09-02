@@ -12,7 +12,7 @@ function buildSpreads(pages) {
   return spreads;
 }
 
-export default function Reader({ doc, viewMode, setActivePage, onCommit, toolState }) {
+export default function Reader({ doc, viewMode, setActivePage, setScale, onCommit, toolState }) {
   const { pages, sources, scale, activePageId } = doc;
   const { tool, color, size, opacity, straight } = toolState;
   const containerRef = useRef(null);
@@ -23,7 +23,47 @@ export default function Reader({ doc, viewMode, setActivePage, onCommit, toolSta
   const [, tick] = useState(0);
   activateRef.current = setActivePage;
 
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
+  const setScaleRef = useRef(setScale);
+  setScaleRef.current = setScale;
+  const pinch = useRef(null);
+
   const single = viewMode === "single";
+
+  // pinch-to-zoom on touch devices — adjusts the document scale
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const dist = (t) =>
+      Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    const onStart = (e) => {
+      if (e.touches.length === 2) {
+        pinch.current = { d: dist(e.touches) || 1, s: scaleRef.current };
+      }
+    };
+    const onMove = (e) => {
+      if (e.touches.length === 2 && pinch.current) {
+        e.preventDefault();
+        const ratio = dist(e.touches) / pinch.current.d;
+        const ns = Math.max(0.4, Math.min(4, pinch.current.s * ratio));
+        setScaleRef.current?.(ns);
+      }
+    };
+    const onEnd = (e) => {
+      if (e.touches.length < 2) pinch.current = null;
+    };
+    el.addEventListener("touchstart", onStart, { passive: false });
+    el.addEventListener("touchmove", onMove, { passive: false });
+    el.addEventListener("touchend", onEnd);
+    el.addEventListener("touchcancel", onEnd);
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove", onMove);
+      el.removeEventListener("touchend", onEnd);
+      el.removeEventListener("touchcancel", onEnd);
+    };
+  }, [viewMode]);
 
   // IntersectionObserver for lazy paint + active-page tracking (scroll & book modes)
   useEffect(() => {

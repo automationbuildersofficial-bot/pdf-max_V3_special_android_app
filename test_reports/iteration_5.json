@@ -1,0 +1,37 @@
+{
+  "summary": "Frontend-only verification of mobile pinch-to-zoom (390x844 with CDP touch emulation) plus mobile menu zoom, touch scroll, touch drawing, and desktop (1920x800) zoom/draw/undo/sidebar regression. All requested scenarios PASS. Login bypassed via localStorage seeding; 3-page /tmp/sample.pdf uploaded through data-testid='open-file-input'.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Editor (both viewports)", "issues": ["Success toast ('Opened sample.pdf - 3 pages') renders on top of the TopBar and briefly overlaps zoom / reading-mode controls; controls are clickable again once it auto-dismisses (cosmetic only).", "Mobile 390x844: the floating annotation toolbar occupies ~190x190px at the bottom-center of the reader; gestures started inside it are consumed by the toolbar (pinch/scroll must be started above it). Consider auto-collapsing it on small screens."]}
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_5.json"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Reader.js pinch effect only depends on [viewMode]; it reads scale/setScale through refs, so this is correct — no stale-closure issue found.",
+    "PageView.js onDown (drawing tools) does not ignore secondary pointers, so a 2-finger pinch while a DRAW tool is active can still begin a stroke (verified harmless in select mode, the mobile default, but consider bailing out when e.isPrimary===false or when 2 touches are active)."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "not tested (frontend-only request)", "frontend": "100% (7/7 scenarios)" },
+  "seed_data_creation": "localStorage pdf_user/pdf_token/pdf_tutorial_done seeded; /tmp/sample.pdf (3 pages, 595x842) generated via pdf-lib.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Client-side localStorage bypass per /app/memory/test_credentials.md (Google OAuth still unconfigured, expected).",
+  "detailed_results": {
+    "mobile_pinch_out": "PASS - page-canvas-wrap width 350 -> 1138 px after two-finger pinch-out (CDP Input.dispatchTouchEvent, 2 points 80->260px apart) over reader-scroll.",
+    "mobile_pinch_in": "PASS - width 1138 -> 341 px after pinch-in (300->90px).",
+    "scale_clamping": "PASS - repeated pinch-out saturates at 2380px (=595*4 => 4x max), repeated pinch-in saturates at 238px (=595*0.4 => 0.4x min).",
+    "mobile_menu_zoom": "PASS - mobile-menu-btn -> m-zoom-in 238 -> 357px; m-zoom-out 357 -> 238px. No regression.",
+    "mobile_single_finger_scroll_select_tool": "PASS - reader-scroll scrollTop 40 -> 275 with single-touch drag; instrumented listeners show single-finger touchmove is never preventDefault'ed; computed touch-action = auto on reader and annotation-canvas in select mode; page indicator updated 1/3 -> 2/3. (Note: an earlier attempt showed no scroll only because the touch start point / a prior synthesized gesture interfered - test artifact, not an app bug.)",
+    "pinch_not_a_stroke_in_select_mode": "PASS - after pinch in select mode m-undo stayed disabled (aria-disabled=true) and no annotation pixels were produced.",
+    "mobile_pen_draw_touch": "PASS - tool-pen-btn then single-touch drag on annotation-canvas produced 412 non-transparent pixels (stroke committed); touch-action switches to 'none' for pen.",
+    "desktop_zoom": "PASS - zoom-in-btn 833 -> 952px, zoom-out-btn 952 -> 833px.",
+    "desktop_draw_undo": "PASS - pen stroke 910 px drawn, undo-btn enabled, after undo 0 px.",
+    "desktop_sidebar": "PASS - toggle-sidebar-btn hides (pages-sidebar visible true -> false) and restores it. Correct testid is 'toggle-sidebar-btn' (not 'sidebar-toggle-btn')."
+  },
+  "context_for_next_testing_agent": "Pinch emulation recipe that works: page.context.new_cdp_session(page) -> Emulation.setTouchEmulationEnabled {enabled:true,maxTouchPoints:5}, then Input.dispatchTouchEvent with two touchPoints moved apart/together in ~8 steps over the center of reader-scroll. Input.synthesizeScrollGesture with gestureSourceType='touch' does NOT scroll the nested reader in this headless env - use manual dispatchTouchEvent single-point drags starting well above the floating annotation toolbar instead. Do not reuse a page after synthesizeScrollGesture for dispatchTouchEvent (touch state gets stuck and events stop being delivered).",
+  "rca_of_the_issue": "Original user complaint (cannot zoom on mobile web) is addressed: the new non-passive touchstart/touchmove pinch handler on Reader's containerRef updates doc scale via setScale, verified to change rendered page width in both directions and to clamp at 0.4x-4x. No console/page errors observed; zero error-class elements on page."
+}

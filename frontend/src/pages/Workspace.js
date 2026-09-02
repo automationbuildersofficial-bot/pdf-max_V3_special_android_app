@@ -618,6 +618,7 @@ export default function Workspace() {
                 doc={doc}
                 viewMode={viewMode}
                 setActivePage={setActivePage}
+                setScale={setScale}
                 onCommit={commitAnnotations}
                 toolState={{ tool, color, size, opacity, straight }}
               />
