@@ -96,6 +96,8 @@ function reducer(state, action) {
       return { ...state, docs: upd(action.id, (d) => ({ ...d, scale: action.scale })) };
     case "SET_HANDLE":
       return { ...state, docs: upd(action.id, (d) => ({ ...d, fileHandle: action.handle })) };
+    case "REFIT_ALL":
+      return { ...state, docs: docs.map((d) => ({ ...d, scale: action.scale })) };
     default:
       return state;
   }
@@ -136,9 +138,22 @@ export default function Workspace() {
     () => typeof window !== "undefined" && window.innerWidth < 768
   );
   useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < 768);
+    const fitScale = () =>
+      Math.max(0.4, Math.min(1.6, (window.innerWidth - 40) / 595));
+    const onResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      // auto-refit pages to the new screen width on phones/tablets (e.g. rotate to landscape)
+      if (window.innerWidth < 1024) {
+        dispatch({ type: "REFIT_ALL", scale: fitScale() });
+      }
+    };
+    const onOrient = () => setTimeout(onResize, 150);
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onOrient);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onOrient);
+    };
   }, []);
   const initialScale = () =>
     typeof window !== "undefined" && window.innerWidth < 768
