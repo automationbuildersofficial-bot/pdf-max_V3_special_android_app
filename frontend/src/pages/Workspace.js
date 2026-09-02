@@ -306,6 +306,33 @@ export default function Workspace() {
     toast.success("Removed from device — its saved edits were wiped");
   };
 
+  // ---- Web Share Target: open a PDF shared into the installed app from Android's share sheet ----
+  const sharedConsumed = useRef(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("shared") !== "1" || sharedConsumed.current) return;
+    sharedConsumed.current = true;
+    (async () => {
+      try {
+        if (!("caches" in window)) return;
+        const cache = await caches.open("pdf-share");
+        const res = await cache.match("/__shared_pdf");
+        if (res) {
+          const blob = await res.blob();
+          const name = decodeURIComponent(res.headers.get("X-Filename") || "shared.pdf");
+          await cache.delete("/__shared_pdf");
+          await openFile(new File([blob], name, { type: "application/pdf" }));
+        }
+      } catch (e) {
+        toast.error("Could not open the shared PDF.");
+      } finally {
+        window.history.replaceState({}, "", "/app");
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
   const openFromDevice = async () => {
     if (!supportsFS) {
       toast.error("This browser can't access device files directly — use Browse instead.");

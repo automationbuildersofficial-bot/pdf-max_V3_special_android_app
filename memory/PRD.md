@@ -30,6 +30,13 @@ default, single page, book/two-page).
 - Google-only accounts + guest mode.
 
 ## Implemented (2026-06)
+- **Web Share Target (Share to PDF Studio)** — added a `share_target` (POST/multipart, `pdf` file
+  param) to `manifest.json`; the service worker intercepts `POST /share-target`, stashes the shared
+  PDF in a `pdf-share` cache, and redirects to `/app?shared=1`. `Workspace.js` consumes the stashed
+  file on mount, opens it (adds to recents), then cleans the URL. On installed Android, tapping a PDF
+  in any app → Share → "PDF Studio" opens it here. Verified end-to-end (seeded share cache → opened).
+- **Offline recent-file reopen** — service worker now precaches the pinned pdf.js worker at install so
+  recents (bytes already in IndexedDB) render fully offline; app shell already cached network-first.
 - **Installable PWA (Android/iOS home-screen app)** — added `public/manifest.json` (name, standalone
   display, theme/bg colours, 192/512 + maskable icons), a network-first `public/service-worker.js`
   (offline app-shell fallback, safe for dev hot-reload), registration via `src/registerSW.js` (HTTPS
