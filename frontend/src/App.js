@@ -4,6 +4,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import Login from "@/pages/Login";
 import Workspace from "@/pages/Workspace";
 
@@ -41,6 +42,7 @@ function App() {
         <AuthProvider>
           <BrowserRouter>
             <AppRoutes />
+            <InstallPrompt />
             <Toaster position="top-center" richColors />
           </BrowserRouter>
         </AuthProvider>

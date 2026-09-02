@@ -30,6 +30,13 @@ default, single page, book/two-page).
 - Google-only accounts + guest mode.
 
 ## Implemented (2026-06)
+- **Installable PWA (Android/iOS home-screen app)** — added `public/manifest.json` (name, standalone
+  display, theme/bg colours, 192/512 + maskable icons), a network-first `public/service-worker.js`
+  (offline app-shell fallback, safe for dev hot-reload), registration via `src/registerSW.js` (HTTPS
+  only, skips localhost), PWA meta tags + manifest/apple-touch links in `public/index.html`, and an
+  in-app `InstallPrompt` banner (`src/components/InstallPrompt.js`, wired in `App.js`) that uses
+  `beforeinstallprompt` on Android and shows an "Add to Home Screen" hint on iOS. App icon generated
+  (indigo/violet document + pen glyph). Verified: SW registers, manifest served 200, title/icon updated.
 - **Mobile pinch-to-zoom** — user couldn't zoom on mobile web; added two-finger pinch-to-zoom on the
   PDF reader (non-passive touch handlers on the reader container adjust doc scale, clamped 0.4×–4×).
   Overflow-menu zoom buttons (m-zoom-in/out) also confirmed working. Verified 7/7 (iteration_5.json).
