@@ -4,123 +4,112 @@ Make a web-based PDF reader and editor. PRODUCT REQUIREMENTS:
 - Comments: text, audio (cancelable), web links (cancelable).
 - Shapes for indication.
 - Page manipulation: reorder, extract, insert (blank or writing pages), delete, rotate.
-- Image insertion: insert image between pages (controllable resolution, croppable before insert), counts as new page.
+- Image insertion: insert image between pages (controllable resolution, croppable before insert).
 - PDF operations: merge PDFs, split PDFs, crop pages.
-- UI: Sidebar with page indications (like PowerPoint), night mode.
-- Auth: Google account login only.
+- UI: Sidebar with page indications (like PowerPoint), night mode, multi-doc tabs, recent files tracking.
+- Auth: Google account login & Guest login.
 - Integration: Google Drive sync (browse, edit, save with permissions).
-- Tutorial for first-time users.
-
-*Note: User agreed to a phased approach. Audio comments and Google Drive sync are deferred. User also requested guest login, multi-doc tabs, on-device recent files tracking, continuous/book reading modes, and an autosave indicator.*
+*Note: User agreed to a phased approach. Audio comments and Google Drive sync are deferred.*
 
 **User's preferred language**: English
-*(INSTRUCT next agent to respond in English only)*
 
 **what currently exists?** 
-A functional React-FastAPI web application featuring a robust client-side PDF editor. It includes Guest login, a multi-tab workspace, draggable toolbar, collapsible sidebar, dark mode, continuous and book reading modes. Core PDF operations (drawing, shapes, text, rotate, insert blank, merge, delete) are implemented via  and . A strong on-device persistence layer () automatically saves document edits, annotations, and page states so users can recover their progress from a Recent Files list.
+A robust React-FastAPI web-based PDF editor with strong client-side PDF operations (, ) and on-device persistence (). It supports guest login, multi-tab workspace, multiple reading modes, dark mode, drawing/annotations, page manipulation, and automatic saving. Recent updates have made the app fully mobile-responsive (Android/iOS), featuring dynamic layout refitting, pinch-to-zoom capabilities, and an auto-hiding floating action button (FAB) for the toolbar on small screens.
 
 **Last working item**: 
-    - Last item agent was working: Implemented the Autosave Indicator (showing Saving... to All changes saved) in the TopBar and Clear Saved Copy functionality (wipes local device state/PDF bytes when a file is removed from the recent list).
+    - Last item agent was working: Implemented an Auto-Hide Toolbar specifically for mobile devices, converting the floating draw toolbar into a small, togglable pencil FAB to prevent blocking pinch/scroll gestures.
     - Status: USER VERIFICATION PENDING
-    - Agent Testing Done: N (Agent only compiled the code via bash, did not run UI tests for these specific minor additions).
-    - Which testing method agent to use?: screenshot tool or testing agent (to verify the Autosave indicator UI and wipe-on-remove behavior).
+    - Agent Testing Done: Y
+    - Which testing method agent to use?: NA (Already tested via screenshot tool by the agent).
     - User Testing Done: N
 
 **All Pending/In progress Issue list**: 
-  None at the moment. The app compiles successfully.
+  None at the moment. All reported mobile responsiveness and zooming bugs were resolved and tested successfully.
 
 **In progress Task List**: 
   None actively in mid-code.
 
 **Upcoming and Future Tasks**
-  Upcoming Tasks:
-  - Task 1: Provide roadmap/instructions to the user for Google Cloud Console setup to get OAuth credentials, then finalize Google Login (P0) *(User explicitly asked for this roadmap in message 5, which was missed)*.
-  - Task 2: Image insertion with pre-editing/cropping capabilities (P1).
-  - Task 3: Auto-straight mode for drawing/lines (P1).
-  - Task 4: Split PDF functionality (P1).
-  - Task 5: Crop specific PDF pages (P1).
-  
-  Future Tasks:
-  - Task 6: Audio comments (P2 - Deferred to later phases).
-  - Task 7: Google Drive integration for opening/saving files (P2 - Deferred to later phases).
+    Upcoming Tasks:
+    - Task 1: Provide roadmap/instructions to the user for Google Cloud Console setup to get OAuth credentials, then finalize Google Login (P0) *(Critical: This has been delayed multiple times; the user must be given instructions so they can provide the Client ID)*.
+    - Task 2: Image insertion with pre-editing/cropping capabilities (P1).
+    - Task 3: Auto-straight mode for drawing/lines (P1).
+    - Task 4: Split PDF functionality (P1).
+    - Task 5: Crop specific PDF pages (P1).
+    
+    Future Tasks:
+    - Task 6: Audio comments (P2 - Deferred to later phases).
+    - Task 7: Google Drive integration for opening/saving files (P2 - Deferred to later phases).
 
 **Completed work in this session**
-- Frontend scaffolding, Tailwind/Shadcn setup, Backend FastAPI setup (DONE)
-- PDF viewer/editor core UI: , , , ,  (DONE)
-- Guest Login & initial Tutorial component (DONE)
-- Multi-doc tabs, continuous/book reading modes, collapsible sidebar (DONE)
-- On-device persistence () for recent files and state recovery (DONE)
-- Autosave indicator & Clear saved copy features (DONE)
+- Mobile (Android) Responsiveness Fix: Fixed TopBar overflow, sidebar overlap, and touch scrolling over canvas via  and  (DONE)
+- Landscape Refit for Mobile: Implemented dynamic width recalculations on orientation change in  (DONE)
+- Pinch-to-zoom for Mobile: Added multi-touch gesture handlers in  (DONE)
+- Auto-hide floating toolbar / FAB for mobile: Updated  (DONE)
 
 **Earlier issues found/mentioned but not fixed**
 None.
 
 **Known issue recurrence from previous fork**
-- Issue recurrence in previous fork: N/A (First session)
-- Recurrence count: 0
-- Status: NOT STARTED
+  - Issue recurrence in previous fork: N/A
+  - Recurrence count: 0
+  - Status: NOT STARTED
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-Frontend: React, Tailwind CSS, Shadcn UI,  (rendering),  (manipulation), IndexedDB/localStorage (via custom ).
-Backend: FastAPI, MongoDB (currently just for standard Auth context setup).
+Frontend: React, Tailwind CSS, Shadcn UI,  (rendering),  (manipulation), custom  for IndexedDB/localStorage management, mobile touch event handling (pinch-to-zoom).
+Backend: FastAPI, MongoDB (Auth only).
 
 **key DB schema**
-Standard emergent MongoDB user schema (authentication). No specific database tables for PDFs as all data is stored on-device locally via client-side storage.
+- MongoDB is strictly for standard Auth structure. No tables for PDFs—documents are securely managed and persisted client-side in the browser.
 
 **changes in tech stack**
-- Added  and  to frontend for handling PDF operations and rendering.
-- Added  for upcoming Google Auth.
+- None in this session.
 
 **All files of reference** 
-- : Handles on-device storage of PDF blobs and edit states.
-- : Core editor shell containing tabs, document management, and persistence logic.
--  & : Handles actual rendering, continuous/book modes, and canvas overlay for annotations.
-- : Contains credentials for guest login and testing.
+- : Crucial for pinch-to-zoom, page scaling (0.4x - 4x), and touch handling.
+- : Contains the logic for the  check that collapses tools into a single FAB.
+-  & : Adjusted to prevent layout breakage on <768px viewports.
+- : Guest login and testing credentials.
 
 **Areas that need refactoring**: 
-N/A. Code is relatively fresh.
+N/A
 
 **key api endpoints**
-Standard backend  routes mapped in .
+-  (Standard backend authentication)
 
 **Critical Info for New Agent** 
-- The editor logic is heavily client-side. The backend is currently only handling Auth.
-- State persistence is strictly on-device (browser storage) using . When checking file save states, look into local browser storage mechanics, not the backend MongoDB.
-- The Google Auth UI is partially scaffolded but blocked because the user explicitly asked for a roadmap/instructions on how to set up the Google Cloud Console to get the OAuth Client ID (Message 5). **You must provide this explanation to the user.**
+- **Google Auth Blocker**: The previous agent tried to provide the Google Cloud OAuth setup roadmap to the user, but the user immediately pivoted with new bug reports regarding mobile responsiveness. You **must** provide this step-by-step roadmap to the user so they can get their OAuth Client ID.
+- **Client-Side Heavy**: Do not look for PDF files or annotation states on the backend. Everything is stored via browser APIs managed by .
 
 **documents and test reports created in this job** 
-- 
-- 
-- 
-- 
-- 
-- 
+  -  (Updated)
+  - 
+  - 
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. **User**: Provided problem statement. (COMPLETED)
-2. **User**: Answered  prompts (agreed to phased approach, asked for Google Cloud roadmap, deferred Drive & Audio comments). (PARTIALLY COMPLETED - Roadmap pending)
-3. **User**: Add another log in option like as guest and get permission for device document access and edit/store on device. (COMPLETED)
-4. **User**: Requested sliding sidebar, easily movable editor bar, multi-doc tabs, recent files track record on local device, and multiple reading modes (book/continuous default). (COMPLETED)
-5. **User**: Save My Edits: Keep every annotation and page change so reopening a recent file restores exactly where I left off (COMPLETED)
-6. **User**: Autosave Indicator: Show a small All changes saved status... Clear Saved Copy: Let removing a file from Recent files also wipe its stored edits (VERIFICATION PENDING)
+ - User: Auto-Hide Toolbar: Let the floating draw toolbar tuck away on phones so it never blocks a pinch or scroll gesture. (COMPLETED)
+ - User: I can't zoom in and zoom out when I am in mobile app and using it in web. (COMPLETED)
+ - User: Landscape Refit: Make pages re-fit the screen automatically when an Android phone is rotated to landscape. (COMPLETED)
+ - User: the web app of this was lacking and glitching when it was opened in android. (COMPLETED)
+ *Note: User's historical request for the Google Cloud Setup Roadmap is still pending implementation/communication.*
 
 **Project Health Check:**
 Healthy.
 
 **3rd Party Integrations** 
-- Google OAuth (Auth) — requires User API Key/Client ID. User is awaiting setup instructions.
+- Google OAuth (Auth) — requires User API Key/Client ID. User is awaiting instructions on how to generate this.
 
 **Testing status**
-- Testing agent used after significant changes: YES
-- Troubleshoot agent used after agent stuck in loop: NO
-- Test files created: , , 
-- Known regressions: None currently. Testing agent successfully fixed a flex-shrink layout bug and a buffer-detach bug in previous iterations.
+  - Testing agent used after significant changes: YES (Tested mobile layouts and pinch-to-zoom gestures)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: , 
+  - Known regressions: None
 
 **Credentials to test flow:**
-Check  (Guest login seeded).
+Refer to .
 
 **What agent forgot to execute**
-- In Message 5, the user requested: *Please provide the roadmap what to do for google cloud set up* to get their Google OAuth credentials. The agent completely skipped providing these instructions. This must be prioritized so the user can complete the Google Login integration.</analysis>
+- The agent forgot to return to **Task 1: The Google Cloud Console roadmap**. The user interrupted the agent's workflow with mobile bug reports, and the agent completely dropped the priority task. Provide the user with the steps to generate their Google Client ID as your first point of business.</analysis>
