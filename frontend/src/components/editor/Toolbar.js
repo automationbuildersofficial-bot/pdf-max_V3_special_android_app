@@ -15,9 +15,10 @@ import {
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { TOOLS, PALETTE, DRAW_TOOLS, TOOL_DEFAULT_OPACITY } from "@/lib/constants";
-import { Check, GripVertical } from "lucide-react";
+import { Check, GripVertical, PenLine, X } from "lucide-react";
 
 export default function Toolbar({
+  isMobile,
   tool,
   setTool,
   color,
@@ -43,6 +44,12 @@ export default function Toolbar({
   });
   const drag = useRef(null);
   const barRef = useRef(null);
+
+  // On phones the toolbar tucks away into a small FAB so it never blocks pinch/scroll.
+  const [collapsed, setCollapsed] = useState(isMobile);
+  useEffect(() => {
+    setCollapsed(isMobile);
+  }, [isMobile]);
 
   const onDragMove = useCallback((e) => {
     if (!drag.current) return;
@@ -83,6 +90,20 @@ export default function Toolbar({
   const positioned = pos
     ? { position: "fixed", left: pos.x, top: pos.y }
     : undefined;
+
+  if (isMobile && collapsed) {
+    return (
+      <button
+        data-testid="toolbar-fab"
+        onClick={() => setCollapsed(false)}
+        className="fixed bottom-5 right-4 z-40 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-2xl flex items-center justify-center active:scale-95 transition-transform"
+        title="Show drawing tools"
+        aria-label="Show drawing tools"
+      >
+        <PenLine className="h-5 w-5" />
+      </button>
+    );
+  }
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -216,6 +237,18 @@ export default function Toolbar({
               <span className="text-xs whitespace-nowrap">Straight</span>
             </div>
           </>
+        )}
+
+        {isMobile && (
+          <button
+            data-testid="toolbar-collapse-btn"
+            onClick={() => setCollapsed(true)}
+            className="h-10 w-10 shrink-0 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted ml-1"
+            title="Hide tools"
+            aria-label="Hide drawing tools"
+          >
+            <X className="h-5 w-5" />
+          </button>
         )}
       </div>
     </TooltipProvider>

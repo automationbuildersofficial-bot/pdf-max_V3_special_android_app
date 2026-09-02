@@ -623,6 +623,7 @@ export default function Workspace() {
                 toolState={{ tool, color, size, opacity, straight }}
               />
               <Toolbar
+                isMobile={isMobile}
                 tool={tool}
                 setTool={setTool}
                 color={color}
