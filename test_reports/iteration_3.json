@@ -1,0 +1,33 @@
+{
+  "summary": "Frontend-only test of the new 'Save My Edits' on-device persistence. Flow: guest login -> skip tutorial -> open /tmp/sample.pdf (3 pages) -> pen stroke on page 1 -> insert blank page at end (add-page-2 -> 'Blank page', 4 pages) -> rotate page 1 (rotate-active-btn) -> wait 2s for debounce -> close tab (tab-close-*) -> reopen from recent-<id>. FIRST RUN FAILED: reopen showed toast 'Could not reopen this file.' and the Start screen stayed; the stored state's sourceBlobs had size 0 and recents meta had size:0. RCA: pdf.js getDocument({data}) TRANSFERS the ArrayBuffer to its worker, detaching the Uint8Array; openCore/mergeFile created new Blob([buf]) AFTER calling buildPdfPages(), so every persisted source blob was empty (0 bytes) and reopen could not parse the PDF. I applied the in-scope fix (snapshot bytes with buf.slice() into the Blob BEFORE loading, in both openCore and mergeFile; also captured byteSize before openCore for the recents size). AFTER FIX all round-trip assertions PASS: page count restored 4/4, page-1 annotation restored (1293 non-transparent alpha px, identical to pre-close), rotation restored (page-1 wrapper 1179x833 vs portrait 833x1179), all 4 wrapper rects byte-identical to pre-close, stored IndexedDB state = {pages:4, kinds:[pdf,pdf,pdf,blank], rotations:[90,0,0,0], annotations:[1,0,0,0], activePageId preserved, sourceBlob 1435 bytes}. Merge round-trip also verified: merge sample.pdf -> 6 pages, both source blobs persisted (1435,1435), reopen restores 6 pages with both sources rendering. No console errors, no pageerrors, no error toasts after the fix.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "StartScreen recent card / Workspace addRecent", "issue": "Recent card page count is stale: after inserting a page (3 -> 4) and closing the tab the card still reads '3 pages' (localStorage pdf_recents.pages is only updated inside openRecent, not by the debounced save). Cosmetic but misleading.", "selector": "[data-testid=\"recent-<id>\"]", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Reopen recent (persistence round-trip)", "issue": "WAS BROKEN before my fix - persisted sourceBlobs were 0 bytes because pdf.js detached the buffer before the Blob snapshot; reopen always failed with 'Could not reopen this file.'. Fixed in Workspace.js (buf.slice() snapshot before buildPdfPages) and re-verified end-to-end.", "affected_selectors": ["[data-testid=\"recent-list\"]", "[data-testid=\"recent-<id>\"]"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Review/keep my fix in /app/frontend/src/pages/Workspace.js: source Blob must be snapshotted (buf.slice()) BEFORE loadPdfDocument/buildPdfPages because pdf.js transfers the ArrayBuffer (this also fixed recents size:0).",
+    "Also apply the same 'copy bytes before pdf.js load' rule anywhere else raw buffers are reused (e.g. any future import/export path) - openRecent is safe because it re-reads from the Blob.",
+    "Update the recents metadata (pages count) from the debounced saveDocState so recent cards show the edited page count.",
+    "Replace the two empty catch blocks in Workspace.js (lines 148 saveDocState, 278 openFromDevice) with logging - the persistence failure was silent, which hid this bug."
+  ],
+  "critical_code_review_comments": [
+    "saveDocState swallows all errors in an empty catch: an IndexedDB/structured-clone failure would silently lose all user edits with no feedback. Log and surface a toast/indicator.",
+    "mergeFile mutates doc.sources/doc.sourceBlobs directly before dispatching COMMIT; the debounced save depends on the [docs] identity change, so a merge with no page change would not be persisted. Prefer immutable updates through the reducer.",
+    "Workspace.js is 651 lines and owns open/persist/edit/export logic - consider extracting the persistence layer (saveDocState/openRecent) into a hook."
+  ],
+  "updated_files": ["/app/frontend/src/pages/Workspace.js"],
+  "success_rate": {"backend": "not tested (skipped per request)", "frontend": "100% of persistence checks pass after the buffer-detach fix (0% before it)"},
+  "seed_data_creation": "Regenerated /tmp/sample.pdf (3 x A4 pages, title text + rectangle) with pdf-lib.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Guest login via [data-testid=guest-login-btn]; fully client-side, no server auth.",
+  "context_for_next_testing_agent": "Persistence verified end-to-end (annotations + inserted blank page + rotation + activePageId + merged sources) after fixing the pdf.js ArrayBuffer-detach bug in Workspace.js. Each browser-automation run starts with a clean profile, so the whole open->edit->close->reopen flow must be done inside ONE script. Useful probes: read localStorage 'pdf_recents' for the recentId, and read IndexedDB db 'pdfstudio' store 'files' key 'state:<recentId>' to inspect pages/rotations/annotation counts and sourceBlob sizes (a size of 0 means the detach bug regressed). Untested: image-page insert persistence, page reorder/delete persistence, and Export after reopen.",
+  "rca_of_the_issue": "pdf.js's getDocument({data}) transfers ownership of the typed array's ArrayBuffer to the worker thread, leaving the caller's Uint8Array detached (byteLength 0). openCore() and mergeFile() built the persisted `new Blob([buf])` AFTER awaiting buildPdfPages(buf), so every stored sourceBlob was 0 bytes. On reopen, loadPdfDocument on an empty buffer threw, the catch showed 'Could not reopen this file.' and the document never opened - all edits appeared lost. Fix: snapshot bytes (buf.slice()) into the Blob before the pdf.js load; verified reopen now restores page count, annotations, rotation and merged sources exactly."
+}

@@ -1,9 +1,9 @@
-import React, { useReducer, useState, useEffect, useCallback } from "react";
+import React, { useReducer, useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeProvider";
 import { loadPdfDocument } from "@/lib/pdfEngine";
 import { exportPages, buildPdf, downloadBytes } from "@/lib/exportPdf";
-import { putFile, getFile, deleteFile, getRecents, addRecent, removeRecent } from "@/lib/storage";
+import { deleteFile, putState, getState, deleteState, getRecents, addRecent, removeRecent, updateRecent } from "@/lib/storage";
 import TopBar from "@/components/editor/TopBar";
 import Sidebar from "@/components/editor/Sidebar";
 import Reader from "@/components/editor/Reader";
@@ -29,15 +29,16 @@ let pid = 0;
 const newPageId = () => `p${Date.now()}_${pid++}`;
 const newDocId = () => `doc${Date.now()}_${pid++}`;
 
-function makeDoc({ id, name, sources, pages, fileHandle, recentId }) {
+function makeDoc({ id, name, sources, sourceBlobs, pages, fileHandle, recentId, activePageId }) {
   return {
     id,
     name,
     sources,
+    sourceBlobs: sourceBlobs || {},
     pages,
     past: [],
     future: [],
-    activePageId: pages[0]?.id || null,
+    activePageId: activePageId || pages[0]?.id || null,
     selected: new Set(),
     scale: 1.4,
     fileHandle: fileHandle || null,
@@ -133,6 +134,34 @@ export default function Workspace() {
   useEffect(() => localStorage.setItem("pdf_view_mode", viewMode), [viewMode]);
   useEffect(() => localStorage.setItem("pdf_sidebar_open", sidebarOpen ? "1" : "0"), [sidebarOpen]);
 
+  // ---- persist full edit state on-device (debounced) so recents restore exactly ----
+  const saveTimers = useRef({});
+  const saveDocState = async (d) => {
+    if (!d?.recentId) return;
+    try {
+      await putState(d.recentId, {
+        name: d.name,
+        activePageId: d.activePageId,
+        pages: d.pages,
+        sourceBlobs: d.sourceBlobs,
+      });
+      const cur = getRecents().find((r) => r.id === d.recentId);
+      if (cur && cur.pages !== d.pages.length) {
+        setRecents(updateRecent(d.recentId, { pages: d.pages.length }));
+      }
+    } catch (e) {
+      console.warn("Failed to persist edits:", e);
+    }
+  };
+  useEffect(() => {
+    docs.forEach((d) => {
+      if (!d.recentId) return;
+      clearTimeout(saveTimers.current[d.recentId]);
+      saveTimers.current[d.recentId] = setTimeout(() => saveDocState(d), 700);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [docs]);
+
   const doc = docs.find((d) => d.id === activeDocId) || null;
   const pages = doc?.pages || [];
   const sources = doc?.sources || {};
@@ -161,6 +190,9 @@ export default function Workspace() {
 
   const openCore = async (buf, name, { fileHandle, recentId } = {}) => {
     const srcId = "src" + Date.now();
+    // pdf.js transfers the underlying ArrayBuffer to its worker, which detaches `buf`.
+    // Snapshot the bytes into a Blob BEFORE loading so persistence keeps the real PDF.
+    const srcBlob = new Blob([buf.slice()], { type: "application/pdf" });
     const { pdfDoc, list } = await buildPdfPages(buf, srcId);
     const id = newDocId();
     const rid = recentId || id;
@@ -168,12 +200,13 @@ export default function Workspace() {
       id,
       name,
       sources: { [srcId]: pdfDoc },
+      sourceBlobs: { [srcId]: srcBlob },
       pages: list,
       fileHandle,
       recentId: rid,
     });
     dispatch({ type: "OPEN", doc: document });
-    return { rid, count: list.length };
+    return { rid, count: list.length, docState: document };
   };
 
   const openFile = async (file, fileHandle) => {
@@ -181,10 +214,10 @@ export default function Workspace() {
       setLoading(true);
       const buf = new Uint8Array(await file.arrayBuffer());
       const name = file.name.replace(/\.pdf$/i, "");
-      const { rid, count } = await openCore(buf, name, { fileHandle });
-      // persist on device
-      await putFile(rid, new Blob([buf], { type: "application/pdf" }));
-      setRecents(addRecent({ id: rid, name, pages: count, ts: Date.now(), size: buf.length }));
+      const byteSize = buf.length;
+      const { rid, count, docState } = await openCore(buf, name, { fileHandle });
+      await saveDocState(docState);
+      setRecents(addRecent({ id: rid, name, pages: count, ts: Date.now(), size: byteSize }));
       toast.success(`Opened “${file.name}” · ${count} pages`);
     } catch (e) {
       toast.error("Could not open this PDF.");
@@ -201,15 +234,28 @@ export default function Workspace() {
     }
     try {
       setLoading(true);
-      const blob = await getFile(r.id);
-      if (!blob) {
+      const state = await getState(r.id);
+      if (!state || !state.pages) {
         toast.error("This file is no longer available on the device.");
         setRecents(removeRecent(r.id));
         return;
       }
-      const buf = new Uint8Array(await blob.arrayBuffer());
-      await openCore(buf, r.name, { recentId: r.id });
-      setRecents(addRecent({ ...r, ts: Date.now() }));
+      const sources = {};
+      for (const [srcId, blob] of Object.entries(state.sourceBlobs || {})) {
+        const buf = new Uint8Array(await blob.arrayBuffer());
+        sources[srcId] = await loadPdfDocument(buf);
+      }
+      const document = makeDoc({
+        id: newDocId(),
+        name: state.name || r.name,
+        sources,
+        sourceBlobs: state.sourceBlobs || {},
+        pages: state.pages,
+        activePageId: state.activePageId,
+        recentId: r.id,
+      });
+      dispatch({ type: "OPEN", doc: document });
+      setRecents(addRecent({ ...r, pages: state.pages.length, ts: Date.now() }));
     } catch (e) {
       toast.error("Could not reopen this file.");
     } finally {
@@ -218,6 +264,7 @@ export default function Workspace() {
   };
 
   const removeRecentFile = async (id) => {
+    await deleteState(id);
     await deleteFile(id);
     setRecents(removeRecent(id));
   };
@@ -243,8 +290,10 @@ export default function Workspace() {
       setLoading(true);
       const buf = new Uint8Array(await file.arrayBuffer());
       const srcId = "src" + Date.now();
+      const srcBlob = new Blob([buf.slice()], { type: "application/pdf" });
       const { pdfDoc, list } = await buildPdfPages(buf, srcId);
       doc.sources[srcId] = pdfDoc; // sources mutation ok (kept in memory)
+      doc.sourceBlobs[srcId] = srcBlob;
       dispatch({ type: "COMMIT", id: doc.id, pages: [...pages, ...list] });
       toast.success(`Merged ${list.length} pages from “${file.name}”`);
     } catch (e) {

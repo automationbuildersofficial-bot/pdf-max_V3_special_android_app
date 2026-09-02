@@ -44,6 +44,11 @@ export async function deleteFile(id) {
   });
 }
 
+// --- full edit-state persistence (annotations, page order/rotation, sources) ---
+export const putState = (id, state) => putFile(`state:${id}`, state);
+export const getState = (id) => getFile(`state:${id}`);
+export const deleteState = (id) => deleteFile(`state:${id}`);
+
 const RKEY = "pdf_recents";
 
 export function getRecents() {
@@ -64,6 +69,12 @@ export function addRecent(meta) {
 
 export function removeRecent(id) {
   const list = getRecents().filter((r) => r.id !== id);
+  localStorage.setItem(RKEY, JSON.stringify(list));
+  return list;
+}
+
+export function updateRecent(id, patch) {
+  const list = getRecents().map((r) => (r.id === id ? { ...r, ...patch } : r));
   localStorage.setItem(RKEY, JSON.stringify(list));
   return list;
 }
