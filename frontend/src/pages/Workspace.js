@@ -125,6 +125,7 @@ export default function Workspace() {
   const [imgDlg, setImgDlg] = useState({ open: false, index: 0 });
   const [splitDlg, setSplitDlg] = useState({ open: false, at: 1 });
   const [saveDlg, setSaveDlg] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving | saved
 
   const supportsFS = typeof window !== "undefined" && !!window.showOpenFilePicker;
 
@@ -149,6 +150,7 @@ export default function Workspace() {
       if (cur && cur.pages !== d.pages.length) {
         setRecents(updateRecent(d.recentId, { pages: d.pages.length }));
       }
+      setSaveStatus("saved");
     } catch (e) {
       console.warn("Failed to persist edits:", e);
     }
@@ -255,6 +257,7 @@ export default function Workspace() {
         recentId: r.id,
       });
       dispatch({ type: "OPEN", doc: document });
+      setSaveStatus("saved");
       setRecents(addRecent({ ...r, pages: state.pages.length, ts: Date.now() }));
     } catch (e) {
       toast.error("Could not reopen this file.");
@@ -267,6 +270,7 @@ export default function Workspace() {
     await deleteState(id);
     await deleteFile(id);
     setRecents(removeRecent(id));
+    toast.success("Removed from device — its saved edits were wiped");
   };
 
   const openFromDevice = async () => {
@@ -294,6 +298,7 @@ export default function Workspace() {
       const { pdfDoc, list } = await buildPdfPages(buf, srcId);
       doc.sources[srcId] = pdfDoc; // sources mutation ok (kept in memory)
       doc.sourceBlobs[srcId] = srcBlob;
+      setSaveStatus("saving");
       dispatch({ type: "COMMIT", id: doc.id, pages: [...pages, ...list] });
       toast.success(`Merged ${list.length} pages from “${file.name}”`);
     } catch (e) {
@@ -304,7 +309,10 @@ export default function Workspace() {
   };
 
   // ---- per-doc operations ----
-  const commit = (nextPages) => dispatch({ type: "COMMIT", id: doc.id, pages: nextPages });
+  const commit = (nextPages) => {
+    setSaveStatus("saving");
+    dispatch({ type: "COMMIT", id: doc.id, pages: nextPages });
+  };
   const setActivePage = useCallback(
     (pageId) => dispatch({ type: "SET_PAGE", id: activeDocId, pageId }),
     [activeDocId]
@@ -313,6 +321,7 @@ export default function Workspace() {
 
   const commitAnnotations = useCallback(
     (pageId, anns) => {
+      setSaveStatus("saving");
       dispatch({
         type: "COMMIT",
         id: activeDocId,
@@ -478,6 +487,7 @@ export default function Workspace() {
         toggleTheme={toggle}
         docName={doc?.name}
         hasDoc={hasDoc}
+        saveStatus={saveStatus}
         onOpenFile={openFile}
         onOpenFromDevice={openFromDevice}
         onSaveToDevice={() => (doc?.fileHandle ? setSaveDlg(true) : saveToDevice())}

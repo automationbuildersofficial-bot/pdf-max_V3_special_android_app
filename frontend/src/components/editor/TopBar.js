@@ -38,6 +38,8 @@ import {
   PanelLeft,
   ScrollText,
   BookOpen,
+  Loader2,
+  Check,
   Square as SquareIcon,
 } from "lucide-react";
 
@@ -76,6 +78,7 @@ export default function TopBar(props) {
     toggleTheme,
     docName,
     hasDoc,
+    saveStatus,
     onOpenFile,
     onOpenFromDevice,
     onSaveToDevice,
@@ -133,6 +136,24 @@ export default function TopBar(props) {
               {hasDoc ? `${pageCount} pages` : "No document"}
             </p>
           </div>
+          {hasDoc && saveStatus !== "idle" && (
+            <div
+              data-testid="autosave-indicator"
+              className="hidden md:flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-full bg-muted text-muted-foreground"
+            >
+              {saveStatus === "saving" ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                <>
+                  <Check className="h-3 w-3 text-emerald-500" />
+                  All changes saved
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Center */}
