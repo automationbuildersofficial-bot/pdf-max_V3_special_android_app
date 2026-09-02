@@ -29,7 +29,7 @@ let pid = 0;
 const newPageId = () => `p${Date.now()}_${pid++}`;
 const newDocId = () => `doc${Date.now()}_${pid++}`;
 
-function makeDoc({ id, name, sources, sourceBlobs, pages, fileHandle, recentId, activePageId }) {
+function makeDoc({ id, name, sources, sourceBlobs, pages, fileHandle, recentId, activePageId, scale }) {
   return {
     id,
     name,
@@ -40,7 +40,7 @@ function makeDoc({ id, name, sources, sourceBlobs, pages, fileHandle, recentId, 
     future: [],
     activePageId: activePageId || pages[0]?.id || null,
     selected: new Set(),
-    scale: 1.4,
+    scale: scale || 1.4,
     fileHandle: fileHandle || null,
     recentId: recentId || null,
   };
@@ -110,16 +110,19 @@ export default function Workspace() {
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
-  const [tool, setTool] = useState("pen");
+  const [tool, setTool] = useState(() =>
+    typeof window !== "undefined" && window.innerWidth < 768 ? "select" : "pen"
+  );
   const [color, setColor] = useState("#EF4444");
   const [size, setSize] = useState(4);
   const [opacity, setOpacity] = useState(1);
   const [straight, setStraight] = useState(false);
 
   const [viewMode, setViewMode] = useState(() => localStorage.getItem("pdf_view_mode") || "scroll");
-  const [sidebarOpen, setSidebarOpen] = useState(
-    () => localStorage.getItem("pdf_sidebar_open") !== "0"
-  );
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) return false;
+    return localStorage.getItem("pdf_sidebar_open") !== "0";
+  });
 
   const [tut, setTut] = useState({ open: false, step: 0 });
   const [imgDlg, setImgDlg] = useState({ open: false, index: 0 });
@@ -128,6 +131,19 @@ export default function Workspace() {
   const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving | saved
 
   const supportsFS = typeof window !== "undefined" && !!window.showOpenFilePicker;
+
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 768
+  );
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  const initialScale = () =>
+    typeof window !== "undefined" && window.innerWidth < 768
+      ? Math.max(0.4, (window.innerWidth - 40) / 595)
+      : 1.4;
 
   useEffect(() => {
     if (!localStorage.getItem("pdf_tutorial_done")) setTut({ open: true, step: 0 });
@@ -206,6 +222,7 @@ export default function Workspace() {
       pages: list,
       fileHandle,
       recentId: rid,
+      scale: initialScale(),
     });
     dispatch({ type: "OPEN", doc: document });
     return { rid, count: list.length, docState: document };
@@ -255,6 +272,7 @@ export default function Workspace() {
         pages: state.pages,
         activePageId: state.activePageId,
         recentId: r.id,
+        scale: initialScale(),
       });
       dispatch({ type: "OPEN", doc: document });
       setSaveStatus("saved");
@@ -481,6 +499,7 @@ export default function Workspace() {
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden bg-background text-foreground">
       <TopBar
+        isMobile={isMobile}
         user={user}
         logout={logout}
         theme={theme}
@@ -525,20 +544,33 @@ export default function Workspace() {
 
       <div className="flex-1 w-full flex overflow-hidden relative">
         {hasDoc && sidebarOpen && (
-          <Sidebar
-            pages={pages}
-            sources={sources}
-            activePageId={doc.activePageId}
-            setActivePage={setActivePage}
-            selected={doc.selected}
-            toggleSelect={toggleSelect}
-            onReorder={reorder}
-            onRotate={rotatePage}
-            onDelete={deletePage}
-            onAddPage={addPage}
-            onRequestImage={(index) => setImgDlg({ open: true, index })}
-            onCollapse={() => setSidebarOpen(false)}
-          />
+          <>
+            {isMobile && (
+              <div
+                data-testid="sidebar-backdrop"
+                className="absolute inset-0 z-30 bg-black/40"
+                onClick={() => setSidebarOpen(false)}
+              />
+            )}
+            <Sidebar
+              isMobile={isMobile}
+              pages={pages}
+              sources={sources}
+              activePageId={doc.activePageId}
+              setActivePage={(id) => {
+                setActivePage(id);
+                if (isMobile) setSidebarOpen(false);
+              }}
+              selected={doc.selected}
+              toggleSelect={toggleSelect}
+              onReorder={reorder}
+              onRotate={rotatePage}
+              onDelete={deletePage}
+              onAddPage={addPage}
+              onRequestImage={(index) => setImgDlg({ open: true, index })}
+              onCollapse={() => setSidebarOpen(false)}
+            />
+          </>
         )}
 
         <main className="flex-1 h-full bg-canvas overflow-hidden relative" data-testid="canvas-area">

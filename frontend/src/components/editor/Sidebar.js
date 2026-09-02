@@ -79,6 +79,7 @@ function AddPageMenu({ onAdd, onImage, testid }) {
 }
 
 export default function Sidebar({
+  isMobile,
   pages,
   sources,
   activePageId,
@@ -98,7 +99,11 @@ export default function Sidebar({
   return (
     <aside
       data-testid="pages-sidebar"
-      className="w-60 lg:w-72 border-r border-border bg-muted/20 flex flex-col shrink-0"
+      className={`${
+        isMobile
+          ? "absolute inset-y-0 left-0 z-40 w-64 max-w-[80vw] shadow-2xl bg-card"
+          : "w-60 lg:w-72 bg-muted/20"
+      } border-r border-border flex flex-col shrink-0`}
     >
       <div className="h-12 px-4 flex items-center justify-between border-b border-border shrink-0">
         <h4 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">

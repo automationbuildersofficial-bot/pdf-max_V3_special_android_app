@@ -30,6 +30,12 @@ default, single page, book/two-page).
 - Google-only accounts + guest mode.
 
 ## Implemented (2026-06)
+- **Mobile responsiveness (Android/phones)** — fixed "lacking & glitching on Android": TopBar now
+  collapses to a compact page-nav + overflow menu (`mobile-menu-btn`) below 768px; PDF pages auto-fit
+  the screen width on open (no forced horizontal scroll); pages sidebar becomes an opaque overlay
+  drawer (+ backdrop) that auto-closes on page tap and defaults CLOSED on mobile; annotation canvas
+  allows touch-scroll in the default 'select' tool (touch-action toggles per tool); floating toolbar
+  wraps instead of hiding tools. Verified 7/7 mobile flows + desktop regression (iteration_4.json).
 - Auth: Google OAuth (code flow, reads GOOGLE_CLIENT_ID/SECRET) + **Continue as guest**. JWT + /api/auth/me.
 - Reader: continuous-scroll (default), single-page, book/two-page modes; lazy page painting; page rotation.
 - Annotations: pen, pencil, highlighter (20 colours, size, opacity/flow, straight vs freehand),

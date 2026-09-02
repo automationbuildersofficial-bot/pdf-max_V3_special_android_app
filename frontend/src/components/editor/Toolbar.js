@@ -90,7 +90,7 @@ export default function Toolbar({
         ref={barRef}
         data-testid="annotation-toolbar"
         style={positioned}
-        className={`z-40 flex items-center gap-1 p-1.5 rounded-2xl bg-card/90 backdrop-blur-xl border border-border shadow-2xl max-w-[95vw] overflow-x-auto ${
+        className={`z-40 flex flex-wrap items-center justify-center gap-1 p-1.5 rounded-2xl bg-card/90 backdrop-blur-xl border border-border shadow-2xl max-w-[95vw] ${
           pos ? "" : "absolute bottom-5 left-1/2 -translate-x-1/2"
         }`}
       >

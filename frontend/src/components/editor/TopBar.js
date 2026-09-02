@@ -40,6 +40,7 @@ import {
   BookOpen,
   Loader2,
   Check,
+  MoreVertical,
   Square as SquareIcon,
 } from "lucide-react";
 
@@ -112,10 +113,10 @@ export default function TopBar(props) {
     <TooltipProvider delayDuration={200}>
       <header
         data-testid="top-bar"
-        className="h-14 w-full flex items-center justify-between px-3 sm:px-4 bg-card border-b border-border z-30 shrink-0 gap-2"
+        className="h-14 w-full flex items-center justify-between px-2 sm:px-4 bg-card border-b border-border z-30 shrink-0 gap-1 sm:gap-2"
       >
         {/* Left */}
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0">
           {hasDoc && (
             <IconBtn
               label={sidebarOpen ? "Hide pages" : "Show pages"}
@@ -156,9 +157,9 @@ export default function TopBar(props) {
           )}
         </div>
 
-        {/* Center */}
+        {/* Center — full controls on desktop */}
         {hasDoc && (
-          <div className="flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-1">
             <IconBtn label="Undo" onClick={undo} disabled={!canUndo} testid="undo-btn">
               <Undo2 className="h-4 w-4" />
             </IconBtn>
@@ -206,7 +207,7 @@ export default function TopBar(props) {
                     const I = vm.icon;
                     return <I className="h-4 w-4" />;
                   })()}
-                  <span className="hidden md:inline text-xs">
+                  <span className="hidden lg:inline text-xs">
                     {(VIEW_MODES.find((v) => v.id === viewMode) || VIEW_MODES[0]).label}
                   </span>
                 </Button>
@@ -231,64 +232,87 @@ export default function TopBar(props) {
           </div>
         )}
 
+        {/* Center — compact page nav on mobile */}
+        {hasDoc && (
+          <div className="flex md:hidden items-center gap-0.5">
+            <IconBtn label="Previous page" onClick={onPrev} testid="prev-page-btn-m">
+              <ChevronLeft className="h-4 w-4" />
+            </IconBtn>
+            <span className="text-xs tabular-nums min-w-[46px] text-center">
+              {pageIndex + 1}/{pageCount}
+            </span>
+            <IconBtn label="Next page" onClick={onNext} testid="next-page-btn-m">
+              <ChevronRight className="h-4 w-4" />
+            </IconBtn>
+          </div>
+        )}
+
         {/* Right */}
         <div className="flex items-center gap-1">
-          {hasDoc && (
-            <>
-              <IconBtn
-                label="Merge another PDF"
-                onClick={() => mergeRef.current?.click()}
-                testid="merge-btn"
-              >
-                <Combine className="h-4 w-4" />
-              </IconBtn>
-              <IconBtn label="Split document" onClick={onSplit} testid="split-btn">
-                <Scissors className="h-4 w-4" />
-              </IconBtn>
-              <IconBtn
-                label="Save to device"
-                onClick={onSaveToDevice}
-                testid="save-device-btn"
-              >
-                <Save className="h-4 w-4" />
-              </IconBtn>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" className="h-9 rounded-lg gap-1.5 ml-1" data-testid="export-btn">
-                    <Download className="h-4 w-4" /> Export
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={onExport} data-testid="export-full-btn">
-                    <Download className="h-4 w-4 mr-2" /> Download edited PDF
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={onExportSelected}
-                    disabled={selectedCount === 0}
-                    data-testid="export-selected-btn"
-                  >
-                    <Scissors className="h-4 w-4 mr-2" /> Extract selected ({selectedCount})
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          )}
-          <IconBtn
-            label="Open a PDF"
-            onClick={() => openRef.current?.click()}
-            testid="open-file-btn"
-          >
-            <FolderOpen className="h-4 w-4" />
-          </IconBtn>
-          {supportsFS && (
+          {/* Desktop action cluster */}
+          <div className="hidden md:flex items-center gap-1">
+            {hasDoc && (
+              <>
+                <IconBtn
+                  label="Merge another PDF"
+                  onClick={() => mergeRef.current?.click()}
+                  testid="merge-btn"
+                >
+                  <Combine className="h-4 w-4" />
+                </IconBtn>
+                <IconBtn label="Split document" onClick={onSplit} testid="split-btn">
+                  <Scissors className="h-4 w-4" />
+                </IconBtn>
+                <IconBtn
+                  label="Save to device"
+                  onClick={onSaveToDevice}
+                  testid="save-device-btn"
+                >
+                  <Save className="h-4 w-4" />
+                </IconBtn>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" className="h-9 rounded-lg gap-1.5 ml-1" data-testid="export-btn">
+                      <Download className="h-4 w-4" /> Export
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={onExport} data-testid="export-full-btn">
+                      <Download className="h-4 w-4 mr-2" /> Download edited PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={onExportSelected}
+                      disabled={selectedCount === 0}
+                      data-testid="export-selected-btn"
+                    >
+                      <Scissors className="h-4 w-4 mr-2" /> Extract selected ({selectedCount})
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            )}
             <IconBtn
-              label="Open from device (save-back)"
-              onClick={onOpenFromDevice}
-              testid="open-device-btn"
+              label="Open a PDF"
+              onClick={() => openRef.current?.click()}
+              testid="open-file-btn"
             >
-              <HardDrive className="h-4 w-4" />
+              <FolderOpen className="h-4 w-4" />
             </IconBtn>
-          )}
+            {supportsFS && (
+              <IconBtn
+                label="Open from device (save-back)"
+                onClick={onOpenFromDevice}
+                testid="open-device-btn"
+              >
+                <HardDrive className="h-4 w-4" />
+              </IconBtn>
+            )}
+            <IconBtn label="Tutorial" onClick={onHelp} testid="help-btn">
+              <HelpCircle className="h-4 w-4" />
+            </IconBtn>
+          </div>
+
+          {/* Theme toggle — always visible */}
           <IconBtn
             label={theme === "dark" ? "Light mode" : "Night mode"}
             onClick={toggleTheme}
@@ -296,9 +320,98 @@ export default function TopBar(props) {
           >
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </IconBtn>
-          <IconBtn label="Tutorial" onClick={onHelp} testid="help-btn">
-            <HelpCircle className="h-4 w-4" />
-          </IconBtn>
+
+          {/* Mobile overflow menu */}
+          <div className="md:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 rounded-lg"
+                  data-testid="mobile-menu-btn"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                  <span className="sr-only">More actions</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60 max-h-[80vh] overflow-y-auto">
+                {hasDoc && (
+                  <>
+                    <DropdownMenuLabel>Reading mode</DropdownMenuLabel>
+                    {VIEW_MODES.map((v) => {
+                      const I = v.icon;
+                      return (
+                        <DropdownMenuItem
+                          key={v.id}
+                          onClick={() => setViewMode(v.id)}
+                          data-testid={`m-view-${v.id}`}
+                        >
+                          <I className="h-4 w-4 mr-2" /> {v.label}
+                          {viewMode === v.id && <Check className="h-4 w-4 ml-auto text-primary" />}
+                        </DropdownMenuItem>
+                      );
+                    })}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={undo} disabled={!canUndo} data-testid="m-undo">
+                      <Undo2 className="h-4 w-4 mr-2" /> Undo
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={redo} disabled={!canRedo} data-testid="m-redo">
+                      <Redo2 className="h-4 w-4 mr-2" /> Redo
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setScale(Math.min(4, scale + 0.2))}
+                      data-testid="m-zoom-in"
+                    >
+                      <ZoomIn className="h-4 w-4 mr-2" /> Zoom in
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setScale(Math.max(0.4, scale - 0.2))}
+                      data-testid="m-zoom-out"
+                    >
+                      <ZoomOut className="h-4 w-4 mr-2" /> Zoom out
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={onRotateActive} data-testid="m-rotate">
+                      <RotateCw className="h-4 w-4 mr-2" /> Rotate page
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => mergeRef.current?.click()} data-testid="m-merge">
+                      <Combine className="h-4 w-4 mr-2" /> Merge another PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={onSplit} data-testid="m-split">
+                      <Scissors className="h-4 w-4 mr-2" /> Split document
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={onSaveToDevice} data-testid="m-save">
+                      <Save className="h-4 w-4 mr-2" /> Save to device
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={onExport} data-testid="m-export">
+                      <Download className="h-4 w-4 mr-2" /> Download edited PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={onExportSelected}
+                      disabled={selectedCount === 0}
+                      data-testid="m-extract"
+                    >
+                      <Scissors className="h-4 w-4 mr-2" /> Extract selected ({selectedCount})
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                <DropdownMenuItem onClick={() => openRef.current?.click()} data-testid="m-open">
+                  <FolderOpen className="h-4 w-4 mr-2" /> Open a PDF
+                </DropdownMenuItem>
+                {supportsFS && (
+                  <DropdownMenuItem onClick={onOpenFromDevice} data-testid="m-open-device">
+                    <HardDrive className="h-4 w-4 mr-2" /> Open from device
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={onHelp} data-testid="m-help">
+                  <HelpCircle className="h-4 w-4 mr-2" /> Tutorial
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="ml-1" data-testid="user-menu-btn">

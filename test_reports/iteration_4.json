@@ -1,0 +1,37 @@
+{
+  "summary": "Frontend-only verification of the mobile-responsiveness fix at 390x844 plus a desktop regression pass at 1920x800 (Playwright, guest bypass via localStorage seed, 3-page PDF uploaded through data-testid='open-file-input'). ALL 7 requested behaviours PASS. Mobile: header fits 390px with zero horizontal overflow (scrollWidth=clientWidth=390, document scrollWidth=390); desktop clusters (undo/zoom/export/merge/open) correctly hidden; mobile-menu-btn present and its menu shows all 10 required items (m-view-scroll, m-undo, m-zoom-in, m-rotate, m-merge, m-split, m-save, m-export, m-open, m-help); auto-fit scale gives page wrapper width 350 <= 390; sidebar renders as position:absolute w-72 overlay with black/40 backdrop while canvas-area stays full 390px wide (not crushed); thumbnail tap selects page (indicator 1/3 -> 2/3) AND auto-closes the drawer; backdrop tap closes it; annotation-canvas touch-action = auto in select (default tool on mobile is 'select', highlighted) and none with pen; pen stroke committed (452 non-transparent px); compact nav prev-page-btn-m/next-page-btn-m updates indicator (1/3 -> 2/3 -> 1/3); reader vertical scroll works (wheel over canvas moved scrollTop 440 -> 840, no horizontal overflow). Desktop regression: all center + right cluster buttons visible, mobile-menu-btn hidden, sidebar is static and pushes canvas (canvas x=288, w=1632, no backdrop), zoom 100%->114%, page nav, view-mode switching (single/scroll), pen drawing (1691 px) and undo (back to 0 px) all work; collapse/expand via toggle-sidebar-btn and sidebar-expand-btn works. No console errors (only a benign Canvas2D willReadFrequently warning).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Mobile 390x844 - pages drawer", "issues": [
+        "On a fresh mobile profile the sidebar defaults to OPEN (sidebarOpen = localStorage 'pdf_sidebar_open' !== '0'), so immediately after opening a PDF a 288px drawer covers 74% of the 390px screen and hides the document - reads as 'glitchy' on first mobile use. Suggest defaulting sidebarOpen=false when isMobile.",
+        "Drawer background is translucent (bg-muted/20 -> rgba(243,244,246,0.2)); on mobile the PDF page shows through behind the thumbnails, hurting contrast/legibility. Use an opaque bg (bg-background/bg-card) when isMobile.",
+        "With the drawer open, the tappable backdrop strip is only ~102px wide (sidebar w-72 sits on top of the full-width backdrop); a centre tap lands on the drawer. Consider a narrower drawer (e.g. w-64 / 80vw max) or an explicit close button in the drawer header on mobile."
+      ]},
+      {"screen": "Mobile 390x844 - floating annotation toolbar", "issues": [
+        "Toolbar content overflows: scrollWidth 577 vs clientWidth 369, so rect/ellipse/text/link tools, colour picker, size/flow sliders and the Straight toggle are off-screen. It IS horizontally scrollable (overflow-x:auto, verified scrollLeft=200 works) so nothing is unreachable, but there is no scroll affordance/fade hint - users may not discover the hidden tools. Consider a two-row or paginated compact toolbar on mobile."
+      ]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Optional polish: default the pages drawer to CLOSED on mobile so the PDF is visible right after opening a file.",
+    "Optional polish: make the mobile drawer background opaque (currently bg-muted/20 lets the page bleed through).",
+    "Optional polish: add a scroll affordance (or compact/2-row layout) for the floating annotation toolbar on <=390px widths."
+  ],
+  "critical_code_review_comments": [
+    "Workspace.js initialScale() re-reads window.innerWidth instead of the isMobile state - harmless today but duplicate logic; reuse isMobile.",
+    "Scale is fixed at open time; rotating the device from portrait to landscape (or resizing across the 768px breakpoint) does not recompute the auto-fit scale, so the page can then be smaller/larger than the fit. Consider recomputing scale on the isMobile/orientation change.",
+    "Sidebar.js: isMobile drawer keeps bg-muted/20; also no focus trap / Escape handler for the drawer overlay (a11y)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only request)", "frontend": "100% (7/7 requested behaviours verified; 4 cosmetic/UX observations)"},
+  "seed_data_creation": "Generated /tmp/sample.pdf (3 pages, pdf-lib) and uploaded it via data-testid='open-file-input'; guest session seeded in localStorage (pdf_user/pdf_token/pdf_tutorial_done).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Client-side guest bypass via localStorage per /app/memory/test_credentials.md (no server auth needed)",
+  "context_for_next_testing_agent": "Mobile fix verified at 390x844 and desktop at 1920x800. Correct selectors: page thumbnails are 'thumb-{i}' (NOT 'page-thumb-{i}'); 'thumb-select-{i}' is only the checkbox and stops propagation. When drawing, first close the mobile drawer - it overlays the canvas at x<288 and swallows pointer events. In continuous scroll mode, locator(annotation-canvas).first may be scrolled out of view; use view_mode 'single' or scroll into view before drawing. Clicking the backdrop centre fails (drawer intercepts) - click the right-hand strip via mouse.click(x=right-20).",
+  "rca_of_the_issue": "No functional defects found. The remaining mobile roughness is cosmetic: sidebarOpen persists/defaults to true regardless of viewport, so the overlay drawer (w-72, translucent bg-muted/20) covers most of a 390px screen right after opening a document, and the floating toolbar relies on undiscoverable horizontal scrolling."
+}

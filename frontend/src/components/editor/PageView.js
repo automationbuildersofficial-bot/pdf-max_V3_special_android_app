@@ -103,7 +103,6 @@ export default function PageView({
 
   const onDown = (e) => {
     onActivate?.();
-    e.currentTarget.setPointerCapture?.(e.pointerId);
     const pt = toPage(e);
     if (tool === "select") {
       const tol = 6 / scale;
@@ -121,6 +120,7 @@ export default function PageView({
       setLinkDlg({ x: pt[0], y: pt[1], url: "", label: "" });
       return;
     }
+    e.currentTarget.setPointerCapture?.(e.pointerId);
     drawing.current = true;
     if (tool === "eraser") {
       removed.current = new Set();
@@ -200,8 +200,8 @@ export default function PageView({
         <canvas ref={baseRef} className="absolute inset-0 rounded-sm" />
         <canvas
           ref={annRef}
-          className="absolute inset-0 rounded-sm touch-none"
-          style={{ cursor }}
+          className="absolute inset-0 rounded-sm"
+          style={{ cursor, touchAction: tool === "select" ? "auto" : "none" }}
           onPointerDown={onDown}
           onPointerMove={onMove}
           onPointerUp={onUp}
