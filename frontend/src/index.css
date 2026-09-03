@@ -81,6 +81,10 @@ h1, h2, h3, h4, h5 {
   width: 10px;
   height: 10px;
 }
+.canvas-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
 .thumb-scroll::-webkit-scrollbar-thumb,
 .canvas-scroll::-webkit-scrollbar-thumb {
   background: hsl(var(--muted-foreground) / 0.35);

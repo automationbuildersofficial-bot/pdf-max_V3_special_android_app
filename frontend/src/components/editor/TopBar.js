@@ -170,7 +170,7 @@ export default function TopBar(props) {
             <IconBtn label="Previous page" onClick={onPrev} testid="prev-page-btn">
               <ChevronLeft className="h-4 w-4" />
             </IconBtn>
-            <span className="text-xs tabular-nums w-14 text-center">
+            <span className="text-xs tabular-nums w-14 text-center" data-testid="page-indicator">
               {pageIndex + 1} / {pageCount}
             </span>
             <IconBtn label="Next page" onClick={onNext} testid="next-page-btn">
@@ -238,7 +238,7 @@ export default function TopBar(props) {
             <IconBtn label="Previous page" onClick={onPrev} testid="prev-page-btn-m">
               <ChevronLeft className="h-4 w-4" />
             </IconBtn>
-            <span className="text-xs tabular-nums min-w-[46px] text-center">
+            <span className="text-xs tabular-nums min-w-[46px] text-center" data-testid="page-indicator-m">
               {pageIndex + 1}/{pageCount}
             </span>
             <IconBtn label="Next page" onClick={onNext} testid="next-page-btn-m">

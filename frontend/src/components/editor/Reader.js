@@ -28,20 +28,20 @@ export default function Reader({ doc, viewMode, setActivePage, setScale, onCommi
   const setScaleRef = useRef(setScale);
   setScaleRef.current = setScale;
   const pinch = useRef(null);
+  const activePageIdRef = useRef(activePageId);
+  activePageIdRef.current = activePageId;
+  const rafRef = useRef(0);
 
   const single = viewMode === "single";
 
-  // pinch-to-zoom on touch devices — adjusts the document scale
+  // pinch-to-zoom on touch devices — adjusts the document scale.
+  // The non-passive touchmove listener is attached ONLY while a 2-finger pinch is active,
+  // so single-finger scrolling stays on the browser's fast (passive) path and doesn't lag.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const dist = (t) =>
       Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
-    const onStart = (e) => {
-      if (e.touches.length === 2) {
-        pinch.current = { d: dist(e.touches) || 1, s: scaleRef.current };
-      }
-    };
     const onMove = (e) => {
       if (e.touches.length === 2 && pinch.current) {
         e.preventDefault();
@@ -50,11 +50,19 @@ export default function Reader({ doc, viewMode, setActivePage, setScale, onCommi
         setScaleRef.current?.(ns);
       }
     };
-    const onEnd = (e) => {
-      if (e.touches.length < 2) pinch.current = null;
+    const onStart = (e) => {
+      if (e.touches.length === 2) {
+        pinch.current = { d: dist(e.touches) || 1, s: scaleRef.current };
+        el.addEventListener("touchmove", onMove, { passive: false });
+      }
     };
-    el.addEventListener("touchstart", onStart, { passive: false });
-    el.addEventListener("touchmove", onMove, { passive: false });
+    const onEnd = (e) => {
+      if (e.touches.length < 2) {
+        pinch.current = null;
+        el.removeEventListener("touchmove", onMove, { passive: false });
+      }
+    };
+    el.addEventListener("touchstart", onStart, { passive: true });
     el.addEventListener("touchend", onEnd);
     el.addEventListener("touchcancel", onEnd);
     return () => {
@@ -89,9 +97,14 @@ export default function Reader({ doc, viewMode, setActivePage, setScale, onCommi
             best = id;
           }
         });
-        if (best && best !== activePageId) {
-          fromObserver.current = true;
-          activateRef.current(best);
+        if (best && best !== activePageIdRef.current) {
+          cancelAnimationFrame(rafRef.current);
+          rafRef.current = requestAnimationFrame(() => {
+            if (best !== activePageIdRef.current) {
+              fromObserver.current = true;
+              activateRef.current(best);
+            }
+          });
         }
         if (changed) tick((n) => n + 1);
       },
